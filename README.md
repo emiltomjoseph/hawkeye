@@ -1,5 +1,12 @@
 # Hawkeye
 
+> An intelligent web security assessment platform for analyzing websites and identifying common security weaknesses.
+
+![Status](https://img.shields.io/badge/Status-MVP%20Development-orange)
+![License](https://img.shields.io/badge/License-MIT-green)
+
+---
+
 ## Overview
 
 Hawkeye is a web-based security assessment platform that analyzes publicly accessible websites for common security best practices. Users can submit a URL and receive a detailed report containing security headers, HTTPS configuration, SSL certificate information, cookie security, technology stack detection, and an overall security score.
@@ -16,6 +23,18 @@ Hawkeye is a web-based security assessment platform that analyzes publicly acces
 - PDF Report Generation
 - Scan History
 
+## Project Structure
+
+```
+hawkeye/
+├── frontend/
+├── backend/
+├── docs/
+└── .github/
+```
+
+---
+
 ## Tech Stack
 
 ### Frontend
@@ -27,6 +46,15 @@ Hawkeye is a web-based security assessment platform that analyzes publicly acces
 - FastAPI
 - PostgreSQL
 - SQLAlchemy
+
+### Security Scanner
+- Requests
+- BeautifulSoup
+- SSL
+- Socket
+- Wappalyzer (or equivalent)
+
+---
 
 ## Team
 
@@ -41,3 +69,9 @@ Hawkeye is a web-based security assessment platform that analyzes publicly acces
 ## Project Status
 
 🚧 MVP Development
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License.
