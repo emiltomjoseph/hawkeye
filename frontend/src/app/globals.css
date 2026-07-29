@@ -1,0 +1,171 @@
+@import "tailwindcss";
+
+/* ── Hawkeye Design Tokens ── */
+:root {
+  --deep: #000000;
+  --dusk: #000000;
+  --raised: #0b0e14;
+  --border: #1e2638;
+  --talon: #00e5ff;
+  --cyan: #00e5ff;
+  --neon: #00ff87;
+  --grid: #00e5ff;
+  --bone: #ffffff;
+  --feather: #94a3b8;
+  --muted: #64748b;
+  --pass: #00ff87;
+  --warning: #f59e0b;
+  --critical: #ef4444;
+}
+
+@theme inline {
+  --color-deep: var(--deep);
+  --color-dusk: var(--dusk);
+  --color-raised: var(--raised);
+  --color-border: var(--border);
+  --color-talon: var(--talon);
+  --color-cyan: var(--cyan);
+  --color-neon: var(--neon);
+  --color-grid: var(--grid);
+  --color-bone: var(--bone);
+  --color-feather: var(--feather);
+  --color-muted: var(--muted);
+  --color-pass: var(--pass);
+  --color-warning: var(--warning);
+  --color-critical: var(--critical);
+
+  --font-display: var(--font-big-shoulders-display), system-ui, sans-serif;
+  --font-body: var(--font-work-sans), system-ui, sans-serif;
+  --font-mono: var(--font-ibm-plex-mono), ui-monospace, monospace;
+
+  --animate-pulse-signal: pulse-signal 2s ease-in-out infinite;
+  --animate-sweep: sweep 8s linear infinite;
+  --animate-slide-in: slide-in 0.2s ease-out;
+}
+
+/* ── Keyframes & Animations ── */
+@keyframes pulse-signal {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+@keyframes sweep {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes slide-in {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes radar-pulse {
+  0% {
+    transform: scale(0.95);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.08);
+    opacity: 0.35;
+  }
+  100% {
+    transform: scale(0.95);
+    opacity: 0.8;
+  }
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-radar-pulse {
+  animation: radar-pulse 2.5s ease-in-out infinite;
+}
+
+/* ── Base & Background Atmosphere ── */
+html {
+  color: var(--bone);
+  font-family: var(--font-body);
+  background-color: #000000;
+  scroll-behavior: smooth;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  min-height: 100vh;
+  background-color: #000000;
+  background-image: 
+    /* Ambient top cyan header glow */
+    radial-gradient(ellipse 80% 45% at 50% -10%, rgba(0, 229, 255, 0.04), transparent 70%),
+    /* Ambient neon accent glow upper right */
+    radial-gradient(ellipse 50% 35% at 85% 15%, rgba(0, 255, 135, 0.025), transparent 60%),
+    /* 40px Technical Grid pattern */
+    linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    /* Radial Vignette: subtle depth from #0b0e14 center to #000000 edges */
+    radial-gradient(ellipse at 50% 25%, #0b0e14 0%, #000000 90%);
+  background-size: 100% 100%, 100% 100%, 40px 40px, 40px 40px, 100% 100%;
+  background-attachment: fixed;
+}
+
+/* Touch scrolling acceleration */
+.overflow-y-auto, .overflow-x-auto {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+/* Hardware acceleration helper */
+.gpu-accelerate {
+  will-change: transform, opacity;
+  transform: translateZ(0);
+}
+
+/* ── Focus ── */
+*:focus-visible {
+  outline: 2px solid var(--talon);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* ── Selection ── */
+::selection {
+  background-color: color-mix(in srgb, var(--talon) 30%, transparent);
+  color: var(--bone);
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--deep); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--feather); }
+
+/* ── Next.js Dev Indicator Positioning ── */
+nextjs-portal,
+[data-nextjs-toast-wrapper],
+[data-nextjs-toast] {
+  left: auto !important;
+  right: 16px !important;
+  bottom: 16px !important;
+  z-index: 40 !important;
+}
+
+/* ── Text Wrapping Utilities ── */
+.break-url {
+  overflow-wrap: anywhere;
+  word-break: break-all;
+  max-width: 100%;
+}
+
