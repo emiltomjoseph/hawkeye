@@ -1,23 +1,23 @@
 import type { Metadata, Viewport } from "next";
-import { Big_Shoulders, Work_Sans, IBM_Plex_Mono } from "next/font/google";
+import { Outfit, Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
-const bigShoulders = Big_Shoulders({
-  variable: "--font-big-shoulders-display",
+const outfit = Outfit({
+  variable: "--font-outfit",
   subsets: ["latin"],
-  weight: ["700"],
+  weight: ["400", "500", "600", "700"],
   display: "swap",
 });
 
-const workSans = Work_Sans({
-  variable: "--font-work-sans",
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
   weight: ["400", "500"],
   display: "swap",
 });
 
-const ibmPlexMono = IBM_Plex_Mono({
-  variable: "--font-ibm-plex-mono",
+const jetbrainsMono = JetBrains_Mono({
+  variable: "--font-jetbrains-mono",
   subsets: ["latin"],
   weight: ["500"],
   display: "swap",
@@ -74,7 +74,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${bigShoulders.variable} ${workSans.variable} ${ibmPlexMono.variable} h-full antialiased`}
+      className={`${outfit.variable} ${inter.variable} ${jetbrainsMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col font-body text-bone">
         {/* Skip-to-content link for keyboard accessibility */}
