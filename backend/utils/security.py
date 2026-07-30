@@ -49,8 +49,51 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     expire = datetime.now(timezone.utc) + (
         expires_delta or timedelta(minutes=settings.access_token_expire_minutes)
     )
-    to_encode.update({"exp": expire})
+    to_encode.update({"exp": expire, "type": "access"})
     return jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)
+
+
+def create_refresh_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
+    """
+    Create a JWT refresh token.
+
+    Args:
+        data: Payload data (should contain 'sub' with user ID).
+        expires_delta: Optional custom expiration time.
+
+    Returns:
+        Encoded JWT string.
+    """
+    to_encode = data.copy()
+    expire = datetime.now(timezone.utc) + (
+        expires_delta or timedelta(days=settings.refresh_token_expire_days)
+    )
+    to_encode.update({"exp": expire, "type": "refresh"})
+    return jwt.encode(to_encode, settings.refresh_secret_key, algorithm=settings.algorithm)
+
+
+def verify_refresh_token(token: str) -> str:
+    """
+    Verify a refresh token and return the user ID (sub).
+    
+    Raises:
+        HTTPException 401 if token is invalid or expired.
+    """
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(token, settings.refresh_secret_key, algorithms=[settings.algorithm])
+        if payload.get("type") != "refresh":
+            raise credentials_exception
+        user_id: str = payload.get("sub")
+        if user_id is None:
+            raise credentials_exception
+        return user_id
+    except JWTError:
+        raise credentials_exception
 
 
 async def get_current_user(
@@ -58,10 +101,11 @@ async def get_current_user(
     db: AsyncSession = Depends(get_db),
 ):
     """
-    Dependency that extracts and validates the JWT token,
+    Dependency that extracts and validates the JWT access token,
     then returns the current authenticated user.
 
-    Raises HTTPException 401 if token is invalid or user not found.
+    Raises HTTPException 401 if token is invalid, expired, or user not found.
+    Raises HTTPException 403 if user is inactive.
     """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -71,6 +115,8 @@ async def get_current_user(
 
     try:
         payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
+        if payload.get("type") != "access":
+            raise credentials_exception
         user_id: str = payload.get("sub")
         if user_id is None:
             raise credentials_exception
@@ -85,5 +131,11 @@ async def get_current_user(
 
     if user is None:
         raise credentials_exception
+        
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, 
+            detail="Inactive user"
+        )
 
     return user

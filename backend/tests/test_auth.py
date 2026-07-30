@@ -13,7 +13,7 @@ async def test_register_success(client):
         json={
             "name": "John Doe",
             "email": "john@example.com",
-            "password": "securepassword123",
+            "password": "SecurePassword123!",
         },
     )
     assert response.status_code == 201
@@ -32,7 +32,7 @@ async def test_register_duplicate_email(client):
     user_data = {
         "name": "Jane Doe",
         "email": "jane@example.com",
-        "password": "securepassword123",
+        "password": "SecurePassword123!",
     }
     # Register first time
     await client.post("/api/auth/register", json=user_data)
@@ -51,21 +51,21 @@ async def test_register_invalid_email(client):
         json={
             "name": "Bad Email",
             "email": "not-an-email",
-            "password": "securepassword123",
+            "password": "SecurePassword123!",
         },
     )
     assert response.status_code == 422  # Validation error
 
 
 @pytest.mark.asyncio
-async def test_register_short_password(client):
-    """Test registration with a too-short password."""
+async def test_register_weak_password(client):
+    """Test registration with a weak password."""
     response = await client.post(
         "/api/auth/register",
         json={
             "name": "Short Pass",
             "email": "short@example.com",
-            "password": "123",  # Less than 6 characters
+            "password": "weak",  # Less than policy requires
         },
     )
     assert response.status_code == 422
@@ -80,7 +80,7 @@ async def test_login_success(client):
         json={
             "name": "Login User",
             "email": "login@example.com",
-            "password": "securepassword123",
+            "password": "SecurePassword123!",
         },
     )
 
@@ -89,14 +89,16 @@ async def test_login_success(client):
         "/api/auth/login",
         json={
             "email": "login@example.com",
-            "password": "securepassword123",
+            "password": "SecurePassword123!",
         },
     )
     assert response.status_code == 200
     data = response.json()
     assert "access_token" in data
+    assert "refresh_token" in data
     assert data["token_type"] == "bearer"
     assert len(data["access_token"]) > 0
+    assert len(data["refresh_token"]) > 0
 
 
 @pytest.mark.asyncio
@@ -108,7 +110,7 @@ async def test_login_wrong_password(client):
         json={
             "name": "Wrong Pass",
             "email": "wrongpass@example.com",
-            "password": "correctpassword",
+            "password": "CorrectPassword123!",
         },
     )
 
@@ -117,7 +119,7 @@ async def test_login_wrong_password(client):
         "/api/auth/login",
         json={
             "email": "wrongpass@example.com",
-            "password": "incorrectpassword",
+            "password": "IncorrectPassword123!",
         },
     )
     assert response.status_code == 401
@@ -131,7 +133,42 @@ async def test_login_nonexistent_user(client):
         "/api/auth/login",
         json={
             "email": "nobody@example.com",
-            "password": "somepassword",
+            "password": "SomePassword123!",
         },
     )
     assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_refresh_token_success(client):
+    """Test refreshing an access token."""
+    # Register first
+    await client.post(
+        "/api/auth/register",
+        json={
+            "name": "Refresh User",
+            "email": "refresh@example.com",
+            "password": "SecurePassword123!",
+        },
+    )
+
+    # Login to get tokens
+    login_response = await client.post(
+        "/api/auth/login",
+        json={
+            "email": "refresh@example.com",
+            "password": "SecurePassword123!",
+        },
+    )
+    refresh_token = login_response.json()["refresh_token"]
+
+    # Refresh token
+    refresh_response = await client.post(
+        "/api/auth/refresh",
+        json={"refresh_token": refresh_token},
+    )
+    assert refresh_response.status_code == 200
+    data = refresh_response.json()
+    assert "access_token" in data
+    assert "refresh_token" in data
+    assert len(data["access_token"]) > 0

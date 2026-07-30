@@ -24,6 +24,8 @@ class ScanResponse(BaseModel):
     security_score: Optional[int] = None
     status: str
     created_at: datetime
+    completed_at: Optional[datetime] = None
+    scan_duration: Optional[float] = None
 
     model_config = {"from_attributes": True}
 
@@ -51,6 +53,8 @@ class ScanDetailResponse(BaseModel):
     security_score: Optional[int] = None
     status: str
     created_at: datetime
+    completed_at: Optional[datetime] = None
+    scan_duration: Optional[float] = None
     result: Optional[ScanResultSchema] = None
 
     model_config = {"from_attributes": True}

@@ -38,7 +38,9 @@ async def test_scan_history_empty(client, auth_headers):
     """Test getting scan history when no scans exist."""
     response = await client.get("/api/history", headers=auth_headers)
     assert response.status_code == 200
-    assert response.json() == []
+    data = response.json()
+    assert data["items"] == []
+    assert data["total"] == 0
 
 
 @pytest.mark.asyncio

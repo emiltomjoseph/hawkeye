@@ -5,7 +5,7 @@ Represents a security scan initiated by a user for a given URL.
 
 from datetime import datetime, timezone
 
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String
+from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, String
 from sqlalchemy.orm import relationship
 
 from database.connection import Base
@@ -25,7 +25,10 @@ class Scan(Base):
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
         nullable=False,
+        index=True,
     )
+    completed_at = Column(DateTime(timezone=True), nullable=True)
+    scan_duration = Column(Float, nullable=True)  # Duration in seconds
 
     # Relationships
     user = relationship("User", back_populates="scans")

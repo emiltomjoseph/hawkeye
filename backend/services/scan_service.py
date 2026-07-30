@@ -50,6 +50,8 @@ async def process_scan_background(scan_id: int, url: str) -> None:
         scan_id: ID of the scan record.
         url: Target URL to scan.
     """
+    from datetime import datetime, timezone
+    
     async with async_session() as db:
         try:
             # Fetch scan record to ensure it exists
@@ -62,7 +64,9 @@ async def process_scan_background(scan_id: int, url: str) -> None:
 
             # Run the scanner engine
             logger.info(f"Background: Starting scan for URL: {url} (ID: {scan_id})")
+            start_time = datetime.now(timezone.utc)
             scan_data = await run_scan(url)
+            end_time = datetime.now(timezone.utc)
 
             # Store scan results
             scan_result = ScanResult(
@@ -78,12 +82,14 @@ async def process_scan_background(scan_id: int, url: str) -> None:
             )
             db.add(scan_result)
 
-            # Update scan with score and status
+            # Update scan with score, status, and analytics
             scan.security_score = scan_data.get("security_score", 0)
             scan.status = "completed"
+            scan.completed_at = end_time
+            scan.scan_duration = (end_time - start_time).total_seconds()
 
             await db.commit()
-            logger.info(f"Background: Scan completed for URL: {url} | Score: {scan.security_score}")
+            logger.info(f"Background: Scan completed for URL: {url} | Score: {scan.security_score} | Duration: {scan.scan_duration}s")
 
         except Exception as e:
             logger.error(f"Background: Scan failed for URL: {url} | Error: {str(e)}")
@@ -93,6 +99,7 @@ async def process_scan_background(scan_id: int, url: str) -> None:
                 scan = result.scalar_one_or_none()
                 if scan:
                     scan.status = "failed"
+                    scan.completed_at = datetime.now(timezone.utc)
                     await db.commit()
             except Exception as inner_e:
                 logger.error(f"Failed to update scan status: {str(inner_e)}")
@@ -129,23 +136,43 @@ async def get_scan(db: AsyncSession, scan_id: int, user_id: int) -> Scan:
     return scan
 
 
-async def get_user_scans(db: AsyncSession, user_id: int) -> List[Scan]:
+async def get_user_scans(db: AsyncSession, user_id: int, skip: int = 0, limit: int = 20) -> dict:
     """
-    Get all scans for a user, ordered by most recent first.
+    Get all scans for a user with pagination.
 
     Args:
         db: Database session.
         user_id: ID of the user.
+        skip: Number of records to skip.
+        limit: Maximum number of records to return.
 
     Returns:
-        List of Scan objects.
+        Dict with items and total count.
     """
+    # Get total count
+    from sqlalchemy import func
+    count_result = await db.execute(
+        select(func.count(Scan.id)).where(Scan.user_id == user_id)
+    )
+    total = count_result.scalar_one()
+
+    # Get paginated items
     result = await db.execute(
         select(Scan)
         .where(Scan.user_id == user_id)
         .order_by(Scan.created_at.desc())
+        .offset(skip)
+        .limit(limit)
     )
-    return list(result.scalars().all())
+    items = list(result.scalars().all())
+    
+    return {
+        "items": items,
+        "total": total,
+        "page": (skip // limit) + 1 if limit > 0 else 1,
+        "size": limit,
+        "pages": (total + limit - 1) // limit if limit > 0 else 1
+    }
 
 
 async def delete_scan(db: AsyncSession, scan_id: int, user_id: int) -> None:
