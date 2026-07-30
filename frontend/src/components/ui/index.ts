@@ -12,3 +12,4 @@ export * from "./Modal";
 export * from "./Spinner";
 export * from "./EmptyState";
 export * from "./Switch";
+export * from "./Skeleton";
