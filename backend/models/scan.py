@@ -25,6 +25,7 @@ class Scan(Base):
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
         nullable=False,
+        index=True,
     )
     completed_at = Column(DateTime(timezone=True), nullable=True)
     scan_duration = Column(Float, nullable=True)  # Duration in seconds

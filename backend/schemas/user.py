@@ -27,6 +27,10 @@ class UserRegister(BaseModel):
             raise ValueError("Password must contain at least one uppercase letter")
         if settings.password_require_digit and not any(c.isdigit() for c in v):
             raise ValueError("Password must contain at least one number")
+        
+        # Powerup: Advanced regex-based special char check
+        if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", v):
+            raise ValueError("Password must contain at least one special character")
         return v
 
 
@@ -54,6 +58,10 @@ class ChangePassword(BaseModel):
             raise ValueError("Password must contain at least one uppercase letter")
         if settings.password_require_digit and not any(c.isdigit() for c in v):
             raise ValueError("Password must contain at least one number")
+            
+        # Powerup: Advanced regex-based special char check
+        if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", v):
+            raise ValueError("Password must contain at least one special character")
         return v
 
 
