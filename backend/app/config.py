@@ -21,10 +21,24 @@ class Settings(BaseSettings):
     # Database
     database_url: str = "sqlite+aiosqlite:///./hawkeye.db"
 
-    # JWT
+    # JWT — Access Token
     secret_key: str = "hawkeye-super-secret-key-change-in-production-2024"
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
+
+    # JWT — Refresh Token
+    refresh_secret_key: str = "hawkeye-refresh-secret-key-change-in-production-2024"
+    refresh_token_expire_days: int = 7
+
+    # Password Policy
+    password_min_length: int = 8
+    password_require_uppercase: bool = True
+    password_require_digit: bool = True
+
+    # Rate Limiting
+    rate_limit_auth: str = "10/minute"
+    rate_limit_scan: str = "5/minute"
+    rate_limit_default: str = "60/minute"
 
     # CORS
     cors_origins: List[str] = ["http://localhost:3000", "http://localhost:5173"]
@@ -33,6 +47,10 @@ class Settings(BaseSettings):
     app_name: str = "HawkEye"
     app_version: str = "1.0.0"
     debug: bool = True
+
+    # Pagination
+    default_page_size: int = 20
+    max_page_size: int = 100
 
 
 @lru_cache()
