@@ -26,7 +26,7 @@ export default function LandingFooter() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-10">
           {/* Brand */}
           <div className="sm:col-span-2 lg:col-span-1">
-            <div className="flex items-center gap-2 mb-3">
+            <div className="flex items-center gap-2.5 mb-4">
               <svg
                 width="22"
                 height="22"
@@ -35,34 +35,30 @@ export default function LandingFooter() {
                 className="text-talon"
                 aria-hidden="true"
               >
-                <circle cx="14" cy="14" r="10" stroke="currentColor" strokeWidth="2" />
-                <circle cx="14" cy="14" r="5" stroke="currentColor" strokeWidth="1.5" />
-                <circle cx="14" cy="14" r="1.5" fill="currentColor" />
-                <line x1="14" y1="0" x2="14" y2="6" stroke="currentColor" strokeWidth="1.5" />
-                <line x1="14" y1="22" x2="14" y2="28" stroke="currentColor" strokeWidth="1.5" />
-                <line x1="0" y1="14" x2="6" y2="14" stroke="currentColor" strokeWidth="1.5" />
-                <line x1="22" y1="14" x2="28" y2="14" stroke="currentColor" strokeWidth="1.5" />
+                <circle cx="14" cy="14" r="10" stroke="currentColor" strokeWidth="2.5" />
+                <circle cx="14" cy="14" r="4.5" stroke="currentColor" strokeWidth="1.5" />
+                <circle cx="14" cy="14" r="2" fill="currentColor" />
               </svg>
-              <span className="font-display text-base uppercase tracking-wider text-bone">
+              <span className="font-display text-base font-bold tracking-tight text-bone">
                 Hawkeye
               </span>
             </div>
-            <p className="text-feather/60 text-xs leading-relaxed max-w-[240px]">
+            <p className="text-feather/60 text-sm leading-relaxed max-w-[260px]">
               Open-source web security assessment platform. Scan any URL for misconfigurations and vulnerabilities.
             </p>
           </div>
 
           {/* Product Links */}
           <div>
-            <h3 className="font-mono text-[10px] tracking-[0.2em] text-grid/60 uppercase mb-3">
+            <h3 className="font-body text-xs font-semibold text-feather uppercase tracking-wide mb-4">
               Product
             </h3>
-            <ul className="space-y-2">
+            <ul className="space-y-2.5">
               {footerLinks.product.map((link) => (
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    className="text-feather/60 text-xs hover:text-bone transition-colors"
+                    className="text-feather/60 text-sm hover:text-bone transition-colors"
                   >
                     {link.label}
                   </Link>
@@ -73,15 +69,15 @@ export default function LandingFooter() {
 
           {/* Resources Links */}
           <div>
-            <h3 className="font-mono text-[10px] tracking-[0.2em] text-grid/60 uppercase mb-3">
+            <h3 className="font-body text-xs font-semibold text-feather uppercase tracking-wide mb-4">
               Resources
             </h3>
-            <ul className="space-y-2">
+            <ul className="space-y-2.5">
               {footerLinks.resources.map((link) => (
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    className="text-feather/60 text-xs hover:text-bone transition-colors"
+                    className="text-feather/60 text-sm hover:text-bone transition-colors"
                   >
                     {link.label}
                   </Link>
@@ -92,7 +88,7 @@ export default function LandingFooter() {
 
           {/* Project Links */}
           <div>
-            <h3 className="font-mono text-[10px] tracking-[0.2em] text-grid/60 uppercase mb-3">
+            <h3 className="font-body text-xs font-semibold text-feather uppercase tracking-wide mb-4">
               Project
             </h3>
             <ul className="space-y-2">

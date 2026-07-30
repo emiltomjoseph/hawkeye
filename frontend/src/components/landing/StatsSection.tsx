@@ -7,26 +7,21 @@ const stats = [
 
 export default function StatsSection() {
   return (
-    <section className="px-5 sm:px-8 py-12 sm:py-16">
-      <div className="mx-auto max-w-5xl">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    <section className="px-5 sm:px-8 py-12 sm:py-20 relative">
+      <div className="mx-auto max-w-5xl relative z-10">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
           {stats.map((stat) => (
             <div
               key={stat.code}
-              className="group rounded-lg border border-border bg-raised/40 p-5 sm:p-6 text-center transition-colors hover:border-talon/30"
+              className="group rounded-2xl border border-border/40 bg-raised/20 p-6 sm:p-8 text-center shadow-sm hover:shadow-lg hover:border-talon/20 transition-all duration-300 backdrop-blur-sm"
             >
-              {/* Stat code */}
-              <p className="font-mono text-[9px] tracking-[0.25em] text-grid/50 uppercase mb-3">
-                {stat.code}
-              </p>
-
               {/* Value */}
-              <p className="font-display text-3xl sm:text-4xl uppercase text-talon leading-none mb-2 tracking-tight">
+              <p className="font-display text-4xl sm:text-5xl font-bold text-talon leading-none mb-3 tracking-tight group-hover:scale-105 transition-transform duration-300">
                 {stat.value}
               </p>
 
               {/* Label */}
-              <p className="font-body text-feather text-xs sm:text-sm">
+              <p className="font-body text-bone font-medium text-sm sm:text-base">
                 {stat.label}
               </p>
             </div>

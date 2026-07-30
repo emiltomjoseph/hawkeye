@@ -1,19 +1,19 @@
 @import "tailwindcss";
 
-/* ── Hawkeye Design Tokens ── */
+/* ── Hawkeye Design Tokens (Soft Modern) ── */
 :root {
-  --deep: #000000;
-  --dusk: #000000;
-  --raised: #0b0e14;
-  --border: #1e2638;
-  --talon: #00e5ff;
-  --cyan: #00e5ff;
-  --neon: #00ff87;
-  --grid: #00e5ff;
-  --bone: #ffffff;
-  --feather: #94a3b8;
-  --muted: #64748b;
-  --pass: #00ff87;
+  --deep: #09090b;
+  --dusk: #18181b;
+  --raised: #27272a;
+  --border: #3f3f46;
+  --talon: #3b82f6;
+  --cyan: #0ea5e9;
+  --neon: #10b981;
+  --grid: #3f3f46;
+  --bone: #f4f4f5;
+  --feather: #a1a1aa;
+  --muted: #71717a;
+  --pass: #10b981;
   --warning: #f59e0b;
   --critical: #ef4444;
 }
@@ -34,9 +34,9 @@
   --color-warning: var(--warning);
   --color-critical: var(--critical);
 
-  --font-display: var(--font-big-shoulders-display), system-ui, sans-serif;
-  --font-body: var(--font-work-sans), system-ui, sans-serif;
-  --font-mono: var(--font-ibm-plex-mono), ui-monospace, monospace;
+  --font-display: var(--font-outfit), system-ui, sans-serif;
+  --font-body: var(--font-inter), system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
 
   --animate-pulse-signal: pulse-signal 2s ease-in-out infinite;
   --animate-sweep: sweep 8s linear infinite;
@@ -106,18 +106,13 @@ html {
 
 body {
   min-height: 100vh;
-  background-color: #000000;
+  background-color: var(--deep);
   background-image: 
-    /* Ambient top cyan header glow */
-    radial-gradient(ellipse 80% 45% at 50% -10%, rgba(0, 229, 255, 0.04), transparent 70%),
-    /* Ambient neon accent glow upper right */
-    radial-gradient(ellipse 50% 35% at 85% 15%, rgba(0, 255, 135, 0.025), transparent 60%),
-    /* 40px Technical Grid pattern */
-    linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-    /* Radial Vignette: subtle depth from #0b0e14 center to #000000 edges */
-    radial-gradient(ellipse at 50% 25%, #0b0e14 0%, #000000 90%);
-  background-size: 100% 100%, 100% 100%, 40px 40px, 40px 40px, 100% 100%;
+    /* Soft ambient top blue glow */
+    radial-gradient(ellipse 60% 50% at 50% -10%, rgba(59, 130, 246, 0.08), transparent 70%),
+    /* Soft ambient cyan glow upper right */
+    radial-gradient(ellipse 50% 50% at 80% 20%, rgba(14, 165, 233, 0.06), transparent 70%);
+  background-size: 100% 100%, 100% 100%;
   background-attachment: fixed;
 }
 
