@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button, Input, Alert } from "@/components/ui";
+import { saveUser } from "@/lib/user-store";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -29,6 +30,8 @@ export default function SignupPage() {
     }
 
     setIsLoading(true);
+
+    saveUser({ name: name.trim(), email: email.trim() });
 
     // Mock authentication redirect
     setTimeout(() => {

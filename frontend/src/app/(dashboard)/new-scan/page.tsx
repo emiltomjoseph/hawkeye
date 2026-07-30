@@ -40,7 +40,10 @@ async function submitScan(url: string): Promise<ScanResult> {
   };
 }
 
+import { useRouter } from "next/navigation";
+
 export default function NewScanPage() {
+  const router = useRouter();
   const [scanState, setScanState] = useState<ScanState>("idle");
   const [urlInput, setUrlInput] = useState("");
   const [urlError, setUrlError] = useState<string | undefined>();
@@ -316,11 +319,14 @@ export default function NewScanPage() {
                 >
                   Run Another Scan
                 </Button>
-                <Link href={`/scan/${scanResult.id}`}>
-                  <Button variant="primary" size="md" rightIcon={ArrowRight}>
-                    View Full Report
-                  </Button>
-                </Link>
+                <Button
+                  variant="primary"
+                  size="md"
+                  rightIcon={ArrowRight}
+                  onClick={() => router.push(`/scan/${scanResult.id}`)}
+                >
+                  View Full Report
+                </Button>
               </div>
             </div>
 
