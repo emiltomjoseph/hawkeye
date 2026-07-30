@@ -1,6 +1,6 @@
 """
 User profile API routes.
-Handles profile viewing, updating, and password changes.
+Handles profile viewing, updating, password changes, and account deletion.
 """
 
 from fastapi import APIRouter, Depends
@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from database import get_db
 from models.user import User
 from schemas.user import UserProfile, UserUpdate, ChangePassword, MessageResponse
-from services.user_service import get_profile, update_profile, change_password
+from services.user_service import get_profile, update_profile, change_password, deactivate_account
 from utils.security import get_current_user
 
 router = APIRouter(prefix="/api/user", tags=["User"])
@@ -27,7 +27,9 @@ async def update_user_profile(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Update the authenticated user's profile (name)."""
+    """
+    Update the authenticated user's profile (name, email).
+    """
     return await update_profile(db, current_user, data)
 
 
@@ -44,3 +46,15 @@ async def change_user_password(
     """
     await change_password(db, current_user, data)
     return MessageResponse(message="Password changed successfully")
+
+
+@router.delete("/profile", response_model=MessageResponse)
+async def delete_user_profile(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Deactivate the authenticated user's account.
+    """
+    await deactivate_account(db, current_user)
+    return MessageResponse(message="Account deactivated successfully")

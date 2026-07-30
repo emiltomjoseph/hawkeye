@@ -4,6 +4,7 @@ Handles user profile management business logic.
 """
 
 from fastapi import HTTPException, status
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.user import User
@@ -27,9 +28,24 @@ async def update_profile(db: AsyncSession, user: User, data: UserUpdate) -> User
 
     Returns:
         Updated User object.
+        
+    Raises:
+        HTTPException 400 if email is already in use by another user.
     """
     if data.name is not None:
         user.name = data.name
+        
+    if data.email is not None and data.email != user.email:
+        # Check if email already exists
+        result = await db.execute(select(User).where(User.email == data.email))
+        existing_user = result.scalar_one_or_none()
+        
+        if existing_user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email is already in use",
+            )
+        user.email = data.email
 
     await db.commit()
     await db.refresh(user)
@@ -58,4 +74,16 @@ async def change_password(
         )
 
     user.password_hash = hash_password(data.new_password)
+    await db.commit()
+
+
+async def deactivate_account(db: AsyncSession, user: User) -> None:
+    """
+    Soft-delete a user account by setting is_active to False.
+    
+    Args:
+        db: Database session.
+        user: Current authenticated user.
+    """
+    user.is_active = False
     await db.commit()
