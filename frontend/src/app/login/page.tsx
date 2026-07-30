@@ -4,6 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button, Input, Alert } from "@/components/ui";
+import { api } from "@/lib/api";
+import { useAuth } from "@/lib/AuthContext";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -12,7 +14,9 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  const { login } = useAuth();
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
 
@@ -23,10 +27,18 @@ export default function LoginPage() {
 
     setIsLoading(true);
 
-    // Mock authentication redirect
-    setTimeout(() => {
-      router.push("/dashboard");
-    }, 400);
+    try {
+      const data = await api.auth.login({ email, password });
+      await login(data.access_token, data.refresh_token);
+      
+      const searchParams = new URLSearchParams(window.location.search);
+      const redirect = searchParams.get('redirect') || '/dashboard';
+      router.push(redirect);
+    } catch (err: any) {
+      setError(err.message || "Invalid credentials.");
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   return (

@@ -12,7 +12,8 @@ import {
   LogOut,
   X,
 } from "lucide-react";
-import { sidebarNavItems, mockUser } from "@/lib/mock-dashboard";
+import { sidebarNavItems } from "@/lib/mock-dashboard";
+import { useAuth } from "@/lib/AuthContext";
 
 const iconMap: Record<string, React.ElementType> = {
   Home,
@@ -79,6 +80,9 @@ export default function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
     return pathname === href;
   }
 
+  const { user, logout } = useAuth();
+  const initials = user?.name ? user.name.substring(0, 2).toUpperCase() : "U";
+
   /* ── Shared nav content ── */
   const navContent = (isMobile: boolean) => {
     const showLabels = isMobile || !collapsed;
@@ -143,16 +147,16 @@ export default function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
             {/* Avatar initials */}
             <div className="w-8 h-8 rounded-full bg-neon/10 border border-neon/20 flex items-center justify-center shrink-0">
               <span className="font-mono text-xs text-neon">
-                {mockUser.initials}
+                {initials}
               </span>
             </div>
             {showLabels && (
               <div className="min-w-0 flex-1">
                 <p className="font-body text-sm text-bone truncate">
-                  {mockUser.name}
+                  {user?.name || "User"}
                 </p>
                 <p className="font-mono text-xs text-feather/60 truncate">
-                  {mockUser.email}
+                  {user?.email || ""}
                 </p>
               </div>
             )}
@@ -162,7 +166,10 @@ export default function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
               flex items-center gap-2 mt-3 text-feather hover:text-critical transition-colors text-sm font-body cursor-pointer
               ${!showLabels ? "justify-center" : ""}
             `}
-            onClick={isMobile ? onMobileClose : undefined}
+            onClick={() => {
+              if (isMobile) onMobileClose();
+              logout();
+            }}
           >
             <LogOut className="w-4 h-4" strokeWidth={1.5} />
             {showLabels && <span>Sign Out</span>}

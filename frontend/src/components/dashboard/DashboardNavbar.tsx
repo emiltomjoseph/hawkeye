@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { Menu, Plus, ChevronDown, User, Settings, LogOut } from "lucide-react";
-import { mockUser } from "@/lib/mock-dashboard";
+import { useAuth } from "@/lib/AuthContext";
 
 interface DashboardNavbarProps {
   onMenuToggle: () => void;
@@ -23,6 +23,10 @@ export default function DashboardNavbar({ onMenuToggle }: DashboardNavbarProps) 
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
+
+  const { user, logout } = useAuth();
+  
+  const initials = user?.name ? user.name.substring(0, 2).toUpperCase() : "U";
 
   return (
     <nav
@@ -61,7 +65,7 @@ export default function DashboardNavbar({ onMenuToggle }: DashboardNavbarProps) 
           >
             <div className="w-7 h-7 rounded-full bg-neon/10 border border-neon/20 flex items-center justify-center">
               <span className="font-mono text-[10px] text-neon">
-                {mockUser.initials}
+                {initials}
               </span>
             </div>
             <ChevronDown
@@ -74,8 +78,8 @@ export default function DashboardNavbar({ onMenuToggle }: DashboardNavbarProps) 
           {dropdownOpen && (
             <div className="absolute right-0 top-full mt-1.5 w-48 rounded-lg border border-border bg-raised py-1 shadow-xl shadow-deep/50">
               <div className="px-3 py-2 border-b border-border">
-                <p className="font-body text-sm text-bone">{mockUser.name}</p>
-                <p className="font-mono text-xs text-feather/60">{mockUser.email}</p>
+                <p className="font-body text-sm text-bone">{user?.name || "User"}</p>
+                <p className="font-mono text-xs text-feather/60">{user?.email || ""}</p>
               </div>
               <Link
                 href="/settings"
@@ -95,7 +99,10 @@ export default function DashboardNavbar({ onMenuToggle }: DashboardNavbarProps) 
               </Link>
               <button
                 className="flex items-center gap-2 w-full px-3 py-2 text-sm text-feather hover:text-critical hover:bg-critical/5 transition-colors cursor-pointer"
-                onClick={() => setDropdownOpen(false)}
+                onClick={() => {
+                  setDropdownOpen(false);
+                  logout();
+                }}
               >
                 <LogOut className="w-4 h-4" strokeWidth={1.5} />
                 Sign Out

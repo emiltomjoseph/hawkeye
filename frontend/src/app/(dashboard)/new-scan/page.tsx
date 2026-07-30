@@ -5,51 +5,32 @@ import Link from "next/link";
 import { Globe, ArrowRight, RefreshCw, ArrowLeft, RotateCcw } from "lucide-react";
 import { Button, Input, Card, Badge, Spinner, Alert } from "@/components/ui";
 import ScoreRing from "@/components/ScoreRing";
-import { mockScanResult, type ScanResult } from "@/lib/mock-data";
+import { api } from "@/lib/api";
+import { useAuth } from "@/lib/AuthContext";
+import { useRouter } from "next/navigation";
 
 type ScanState = "idle" | "scanning" | "success" | "error";
 
-/**
- * Mock security scan service.
- * Swap this single function for a real API call when the backend is ready.
- * Signature: submitScan(url: string): Promise<ScanResult>
- */
-async function submitScan(url: string): Promise<ScanResult> {
-  // Realistic delay: 2.5 seconds
-  await new Promise((resolve) => setTimeout(resolve, 2500));
-
-  // Reliably testable failure path: use https://fail-test.com
-  // Also randomly fails ~10% of the time to demonstrate the error flow
-  const isReliableFailure = url.includes("fail-test.com");
-  const isRandomFailure = !isReliableFailure && Math.random() < 0.1;
-
-  if (isReliableFailure || isRandomFailure) {
-    throw new Error(
-      isReliableFailure
-        ? "Target host unreachable or DNS resolution failed."
-        : "Connection timed out. The target did not respond within 30 seconds."
-    );
-  }
-
-  // Normalize to full URL for display in result
-  const normalizedUrl = /^https?:\/\//i.test(url) ? url : `https://${url}`;
-  return {
-    ...mockScanResult,
-    url: normalizedUrl,
-    scannedAt: new Date().toISOString(),
-  };
-}
-
 export default function NewScanPage() {
+  const { user, isLoading: authLoading } = useAuth();
+  const router = useRouter();
+
   const [scanState, setScanState] = useState<ScanState>("idle");
   const [urlInput, setUrlInput] = useState("");
   const [urlError, setUrlError] = useState<string | undefined>();
-  const [scanResult, setScanResult] = useState<ScanResult | null>(null);
+  const [scanResult, setScanResult] = useState<any>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [srAnnouncement, setSrAnnouncement] = useState<string>("");
 
   // Ref for autofocus — applied when idle state mounts or resets to idle
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (authLoading) return;
+    if (!user) {
+      router.push("/login");
+    }
+  }, [user, authLoading, router]);
 
   useEffect(() => {
     if (scanState === "idle" && inputRef.current) {
@@ -70,11 +51,10 @@ export default function NewScanPage() {
 
     try {
       const parsed = new URL(normalized);
-      // Only allow http / https — reject ftp://, javascript:, etc.
+      // Only allow http / https
       if (!["http:", "https:"].includes(parsed.protocol)) {
         return "URL must use http:// or https:// protocol.";
       }
-      // Must have a real hostname with a dot
       if (!parsed.hostname || !parsed.hostname.includes(".")) {
         return "Please enter a valid URL (e.g. https://example.com).";
       }
@@ -93,14 +73,12 @@ export default function NewScanPage() {
   function handleUrlChange(e: React.ChangeEvent<HTMLInputElement>) {
     const val = e.target.value;
     setUrlInput(val);
-    // Clear error eagerly as user types toward a valid value
     if (urlError && (isValidUrl(val) || !val.trim())) {
       setUrlError(undefined);
     }
   }
 
   function handleBlur() {
-    // Validate on blur so users get feedback before hitting the button
     if (urlInput.trim()) {
       setUrlError(getValidationError(urlInput));
     }
@@ -121,22 +99,36 @@ export default function NewScanPage() {
     setSrAnnouncement(`Security scan initiated for ${urlInput.trim()}. Please wait.`);
 
     try {
-      const result = await submitScan(urlInput.trim());
-      setScanResult(result);
-      setScanState("success");
-      setSrAnnouncement(
-        `Scan completed for ${urlInput.trim()}. Security score: ${result.score} out of 100.`
-      );
-    } catch (err) {
-      const errText =
-        err instanceof Error ? err.message : "Scan failed unexpectedly.";
+      // 1. Submit scan to backend
+      const scanRecord = await api.scan.submit(urlInput.trim());
+      
+      // 2. Poll for results
+      const pollInterval = setInterval(async () => {
+        try {
+          const currentScan = await api.scan.get(scanRecord.id);
+          if (currentScan.status === "completed") {
+            clearInterval(pollInterval);
+            setScanResult(currentScan);
+            setScanState("success");
+            setSrAnnouncement(`Scan completed for ${urlInput.trim()}.`);
+          } else if (currentScan.status === "failed") {
+            clearInterval(pollInterval);
+            setErrorMessage("Scan failed to complete on the server.");
+            setScanState("error");
+          }
+        } catch (pollErr) {
+          console.error("Error polling scan:", pollErr);
+        }
+      }, 2000);
+
+    } catch (err: any) {
+      const errText = err.message || "Scan failed unexpectedly.";
       setErrorMessage(errText);
       setScanState("error");
       setSrAnnouncement(`Scan failed for ${urlInput.trim()}. ${errText}`);
     }
   }
 
-  /** Full reset — clears URL and returns to idle (used by "Run Another Scan") */
   function handleFullReset() {
     setUrlInput("");
     setUrlError(undefined);
@@ -146,7 +138,6 @@ export default function NewScanPage() {
     setSrAnnouncement("Scan form reset. Ready for new target URL.");
   }
 
-  /** Error retry — keeps the URL so users can re-submit without retyping */
   function handleRetryFromError() {
     setErrorMessage(null);
     setScanResult(null);
@@ -154,8 +145,33 @@ export default function NewScanPage() {
     setSrAnnouncement("Ready to retry. URL preserved — click Scan Now when ready.");
   }
 
-  const isButtonDisabled =
-    !urlInput.trim() || !!urlError || scanState === "scanning";
+  const isButtonDisabled = !urlInput.trim() || !!urlError || scanState === "scanning";
+
+  // Map backend JSON to categories for display
+  const categories = scanResult ? [
+    {
+      name: "HTTPS & HSTS",
+      status: scanResult.result?.https_status?.available ? "pass" : "fail",
+      detail: scanResult.result?.https_status?.available ? "HTTPS is enabled" : "HTTPS not available",
+    },
+    {
+      name: "SSL Certificate",
+      status: scanResult.result?.ssl_details?.is_valid ? "pass" : "fail",
+      detail: scanResult.result?.ssl_details?.issuer ? `Issued by ${scanResult.result.ssl_details.issuer}` : "Invalid SSL",
+    },
+    {
+      name: "Security Headers",
+      status: scanResult.result?.security_headers?.["Strict-Transport-Security"]?.present ? "pass" : "warning",
+      detail: "HSTS header is " + (scanResult.result?.security_headers?.["Strict-Transport-Security"]?.present ? "present" : "missing"),
+    },
+    {
+      name: "Cookies Security",
+      status: "info",
+      detail: scanResult.result?.cookies?.length ? `${scanResult.result.cookies.length} cookies detected` : "No cookies detected",
+    }
+  ] : [];
+
+  const score = scanResult?.security_score || 0;
 
   return (
     <div className="max-w-5xl mx-auto space-y-8">
@@ -213,7 +229,7 @@ export default function NewScanPage() {
               spellCheck={false}
               helperText={
                 !urlError
-                  ? "Public domains and web apps only. Try https://fail-test.com to test error handling."
+                  ? "Public domains and web apps only."
                   : undefined
               }
             />
@@ -277,7 +293,7 @@ export default function NewScanPage() {
             <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-8 border-b border-border/60 pb-8 min-w-0 w-full">
               <div className="flex flex-col sm:flex-row items-center gap-8 sm:gap-10 min-w-0 flex-1 w-full text-center sm:text-left">
                 <div className="shrink-0 flex items-center justify-center">
-                  <ScoreRing score={scanResult.score} size={110} />
+                  <ScoreRing score={score} size={110} />
                 </div>
                 <div className="min-w-0 flex-1 w-full space-y-2">
                   <div className="flex flex-col sm:flex-row items-center sm:items-baseline gap-3 min-w-0 w-full">
@@ -289,19 +305,19 @@ export default function NewScanPage() {
                     </h2>
                     <Badge
                       variant={
-                        scanResult.score >= 70
+                        score >= 70
                           ? "pass"
-                          : scanResult.score >= 40
+                          : score >= 40
                           ? "warning"
                           : "critical"
                       }
                       className="shrink-0"
                     >
-                      {scanResult.score} / 100
+                      {score} / 100
                     </Badge>
                   </div>
                   <p className="font-body text-xs text-feather truncate">
-                    Scanned just now • 5 security modules checked
+                    Scanned just now
                   </p>
                 </div>
               </div>
@@ -330,7 +346,7 @@ export default function NewScanPage() {
                 SECURITY BREAKDOWN
               </p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5 items-stretch">
-                {scanResult.categories.map((cat, idx) => (
+                {categories.map((cat, idx) => (
                   <div
                     key={cat.name}
                     className="animate-fade-in-up"
@@ -346,7 +362,9 @@ export default function NewScanPage() {
                                 ? "pass"
                                 : cat.status === "warning"
                                 ? "warning"
-                                : "critical"
+                                : cat.status === "critical"
+                                ? "critical"
+                                : "default"
                             }
                           >
                             {cat.status.toUpperCase()}

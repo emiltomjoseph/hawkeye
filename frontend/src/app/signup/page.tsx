@@ -4,6 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button, Input, Alert } from "@/components/ui";
+import { api } from "@/lib/api";
+import { useAuth } from "@/lib/AuthContext";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -14,7 +16,9 @@ export default function SignupPage() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  const { login } = useAuth();
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
 
@@ -30,10 +34,20 @@ export default function SignupPage() {
 
     setIsLoading(true);
 
-    // Mock authentication redirect
-    setTimeout(() => {
+    try {
+      // 1. Register the user
+      await api.auth.register({ name, email, password });
+      
+      // 2. Log them in to get tokens
+      const loginData = await api.auth.login({ email, password });
+      await login(loginData.access_token, loginData.refresh_token);
+      
       router.push("/dashboard");
-    }, 400);
+    } catch (err: any) {
+      setError(err.message || "Registration failed. Try a different email or stronger password.");
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   return (

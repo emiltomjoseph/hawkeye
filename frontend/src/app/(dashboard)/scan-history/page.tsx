@@ -1,13 +1,13 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { Download, Share2, Eye, Check, ExternalLink } from "lucide-react";
 import ScoreRing from "@/components/ScoreRing";
 import StatusBadge from "@/components/StatusBadge";
 import { Button, Card, Badge, EmptyState } from "@/components/ui";
-import { mockScanHistory, formatTimestamp, getScoreColor, type ScanResult } from "@/lib/mock-data";
-import { exportScanReportPDF } from "@/lib/pdf-exporter";
+import { formatTimestamp, getScoreColor } from "@/lib/mock-data";
+import { api } from "@/lib/api";
 
 type FilterStatus = "all" | "pass" | "warning" | "critical";
 type SortKey = "date" | "score";
@@ -21,48 +21,100 @@ function getOverallStatus(score: number): "pass" | "warning" | "critical" {
 export default function ScanHistoryPage() {
   const [filterStatus, setFilterStatus] = useState<FilterStatus>("all");
   const [sortBy, setSortBy] = useState<SortKey>("date");
-  const [downloadingId, setDownloadingId] = useState<string | null>(null);
-  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [downloadingId, setDownloadingId] = useState<number | null>(null);
+  const [copiedId, setCopiedId] = useState<number | null>(null);
+  
+  const [rawScans, setRawScans] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+
+  useEffect(() => {
+    fetchHistory();
+  }, [page]);
+
+  const fetchHistory = async () => {
+    try {
+      setIsLoading(true);
+      const data = await api.scan.getHistory(page, 50); // Fetch up to 50 for client-side filtering/sorting
+      setRawScans(data.items || []);
+      setTotalPages(data.pages || 1);
+    } catch (err: any) {
+      console.error("Failed to fetch scan history", err);
+      setError("Could not load scan history.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   /* ── Filtered & Sorted Scans ── */
   const scans = useMemo(() => {
-    let list = [...mockScanHistory];
+    let list = [...rawScans];
 
     if (filterStatus !== "all") {
-      list = list.filter((s) => getOverallStatus(s.score) === filterStatus);
+      list = list.filter((s) => getOverallStatus(s.security_score || 0) === filterStatus);
     }
 
     list.sort((a, b) => {
       if (sortBy === "date") {
-        return new Date(b.scannedAt).getTime() - new Date(a.scannedAt).getTime();
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
       }
-      return b.score - a.score;
+      return (b.security_score || 0) - (a.security_score || 0);
     });
 
     return list;
-  }, [filterStatus, sortBy]);
+  }, [rawScans, filterStatus, sortBy]);
 
-  const mostRecentScan = mockScanHistory[0];
+  const mostRecentScan = scans.length > 0 ? scans[0] : null;
 
   /* ── Handlers ── */
-  async function handleDownload(scan: ScanResult, e?: React.MouseEvent) {
+  async function handleDownload(scanId: number, e?: React.MouseEvent) {
     e?.preventDefault();
-    setDownloadingId(scan.id);
+    setDownloadingId(scanId);
     try {
-      await exportScanReportPDF(scan);
+      const blob = await api.report.download(scanId);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `hawkeye_report_${scanId}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Failed to download report", err);
+      alert("Failed to download PDF report");
     } finally {
       setDownloadingId(null);
     }
   }
 
-  function handleShare(scan: ScanResult, e?: React.MouseEvent) {
+  function handleShare(scanId: number, e?: React.MouseEvent) {
     e?.preventDefault();
     if (typeof window !== "undefined") {
-      const shareUrl = `${window.location.origin}/scan/${scan.id}`;
+      const shareUrl = `${window.location.origin}/scan/${scanId}`;
       navigator.clipboard.writeText(shareUrl);
-      setCopiedId(scan.id);
+      setCopiedId(scanId);
       setTimeout(() => setCopiedId(null), 2000);
     }
+  }
+
+  if (isLoading && rawScans.length === 0) {
+    return (
+      <div className="flex items-center justify-center py-40">
+        <div className="w-8 h-8 rounded-full border-2 border-transparent border-t-signal animate-spin" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-20 text-red-500">
+        <p>{error}</p>
+        <Button onClick={fetchHistory} className="mt-4">Retry</Button>
+      </div>
+    );
   }
 
   return (
@@ -86,15 +138,15 @@ export default function ScanHistoryPage() {
           <Card padding="lg" className="border-cyan/30 bg-raised/90 shadow-xl">
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
               <div className="flex items-center gap-5">
-                <ScoreRing score={mostRecentScan.score} size={84} />
+                <ScoreRing score={mostRecentScan.security_score || 0} size={84} />
 
                 <div>
                   <div className="flex items-center gap-2.5 mb-1">
                     <span className="font-mono text-xs text-cyan font-semibold uppercase tracking-wider">
                       LATEST SCAN
                     </span>
-                    <Badge variant={getOverallStatus(mostRecentScan.score)}>
-                      {mostRecentScan.score} / 100
+                    <Badge variant={getOverallStatus(mostRecentScan.security_score || 0)}>
+                      {mostRecentScan.security_score || 0} / 100
                     </Badge>
                   </div>
                   <h2 className="font-mono text-lg text-bone font-medium truncate max-w-sm sm:max-w-md">
@@ -102,9 +154,9 @@ export default function ScanHistoryPage() {
                   </h2>
                   <p
                     className="font-mono text-xs text-feather/60 mt-0.5"
-                    title={new Date(mostRecentScan.scannedAt).toUTCString()}
+                    title={new Date(mostRecentScan.created_at).toUTCString()}
                   >
-                    Scanned {formatTimestamp(mostRecentScan.scannedAt)}
+                    Scanned {new Date(mostRecentScan.created_at).toLocaleString()}
                   </p>
                 </div>
               </div>
@@ -121,7 +173,8 @@ export default function ScanHistoryPage() {
                   size="md"
                   leftIcon={downloadingId === mostRecentScan.id ? undefined : Download}
                   isLoading={downloadingId === mostRecentScan.id}
-                  onClick={(e) => handleDownload(mostRecentScan, e)}
+                  onClick={(e) => handleDownload(mostRecentScan.id, e)}
+                  disabled={mostRecentScan.status !== "completed"}
                 >
                   Download PDF
                 </Button>
@@ -211,19 +264,19 @@ export default function ScanHistoryPage() {
                       </Link>
                     </td>
                     <td className="px-5 py-4 text-center">
-                      <span className={`font-mono text-base font-bold ${getScoreColor(scan.score)}`}>
-                        {scan.score}
+                      <span className={`font-mono text-base font-bold ${getScoreColor(scan.security_score || 0)}`}>
+                        {scan.security_score || "-"}
                       </span>
                     </td>
                     <td className="px-5 py-4">
-                      <StatusBadge status={getOverallStatus(scan.score)} />
+                      <StatusBadge status={scan.status === "completed" ? getOverallStatus(scan.security_score || 0) : scan.status} />
                     </td>
                     <td className="px-5 py-4">
                       <span
                         className="font-mono text-xs text-feather/70"
-                        title={new Date(scan.scannedAt).toUTCString()}
+                        title={new Date(scan.created_at).toUTCString()}
                       >
-                        {formatTimestamp(scan.scannedAt)}
+                        {new Date(scan.created_at).toLocaleDateString()}
                       </span>
                     </td>
                     <td className="px-5 py-4 text-right">
@@ -238,8 +291,9 @@ export default function ScanHistoryPage() {
                           variant="secondary"
                           isLoading={downloadingId === scan.id}
                           leftIcon={downloadingId === scan.id ? undefined : Download}
-                          onClick={(e) => handleDownload(scan, e)}
+                          onClick={(e) => handleDownload(scan.id, e)}
                           aria-label={`Download PDF report for ${scan.url}`}
+                          disabled={scan.status !== "completed"}
                         >
                           PDF
                         </Button>
@@ -247,7 +301,7 @@ export default function ScanHistoryPage() {
                           size="sm"
                           variant="ghost"
                           leftIcon={copiedId === scan.id ? Check : Share2}
-                          onClick={(e) => handleShare(scan, e)}
+                          onClick={(e) => handleShare(scan.id, e)}
                           aria-label={`Share link for ${scan.url}`}
                         >
                           {copiedId === scan.id ? "Copied!" : "Share"}
@@ -273,14 +327,14 @@ export default function ScanHistoryPage() {
                       {scan.url}
                     </Link>
                     <p className="font-mono text-xs text-feather/60 mt-0.5">
-                      {formatTimestamp(scan.scannedAt)}
+                      {new Date(scan.created_at).toLocaleString()}
                     </p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    <span className={`font-mono text-lg font-bold ${getScoreColor(scan.score)}`}>
-                      {scan.score}
+                    <span className={`font-mono text-lg font-bold ${getScoreColor(scan.security_score || 0)}`}>
+                      {scan.security_score || "-"}
                     </span>
-                    <StatusBadge status={getOverallStatus(scan.score)} />
+                    <StatusBadge status={scan.status === "completed" ? getOverallStatus(scan.security_score || 0) : scan.status} />
                   </div>
                 </div>
 
@@ -295,7 +349,8 @@ export default function ScanHistoryPage() {
                     variant="secondary"
                     isLoading={downloadingId === scan.id}
                     leftIcon={downloadingId === scan.id ? undefined : Download}
-                    onClick={(e) => handleDownload(scan, e)}
+                    onClick={(e) => handleDownload(scan.id, e)}
+                    disabled={scan.status !== "completed"}
                   >
                     PDF
                   </Button>
@@ -303,7 +358,7 @@ export default function ScanHistoryPage() {
                     size="sm"
                     variant="ghost"
                     leftIcon={copiedId === scan.id ? Check : Share2}
-                    onClick={(e) => handleShare(scan, e)}
+                    onClick={(e) => handleShare(scan.id, e)}
                   >
                     {copiedId === scan.id ? "Copied!" : "Share"}
                   </Button>

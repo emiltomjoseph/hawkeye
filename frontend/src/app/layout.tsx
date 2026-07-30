@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Big_Shoulders, Work_Sans, IBM_Plex_Mono } from "next/font/google";
+import { Providers } from "@/lib/providers";
 import "./globals.css";
 
 const bigShoulders = Big_Shoulders({
@@ -40,7 +41,9 @@ export default function RootLayout({
       className={`${bigShoulders.variable} ${workSans.variable} ${ibmPlexMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col font-body text-bone">
-        {children}
+        <Providers>
+          {children}
+        </Providers>
       </body>
     </html>
   );
