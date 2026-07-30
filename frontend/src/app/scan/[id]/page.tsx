@@ -44,6 +44,7 @@ export default function ScanResultPage() {
   }
 
   function handleShare() {
+    if (!scan) return;
     if (typeof window !== "undefined") {
       const shareUrl = `${window.location.origin}/scan/${scan.id}`;
       navigator.clipboard.writeText(shareUrl);
