@@ -129,23 +129,43 @@ async def get_scan(db: AsyncSession, scan_id: int, user_id: int) -> Scan:
     return scan
 
 
-async def get_user_scans(db: AsyncSession, user_id: int) -> List[Scan]:
+async def get_user_scans(db: AsyncSession, user_id: int, skip: int = 0, limit: int = 20) -> dict:
     """
-    Get all scans for a user, ordered by most recent first.
+    Get all scans for a user with pagination.
 
     Args:
         db: Database session.
         user_id: ID of the user.
+        skip: Number of records to skip.
+        limit: Maximum number of records to return.
 
     Returns:
-        List of Scan objects.
+        Dict with items and total count.
     """
+    # Get total count
+    from sqlalchemy import func
+    count_result = await db.execute(
+        select(func.count(Scan.id)).where(Scan.user_id == user_id)
+    )
+    total = count_result.scalar_one()
+
+    # Get paginated items
     result = await db.execute(
         select(Scan)
         .where(Scan.user_id == user_id)
         .order_by(Scan.created_at.desc())
+        .offset(skip)
+        .limit(limit)
     )
-    return list(result.scalars().all())
+    items = list(result.scalars().all())
+    
+    return {
+        "items": items,
+        "total": total,
+        "page": (skip // limit) + 1 if limit > 0 else 1,
+        "size": limit,
+        "pages": (total + limit - 1) // limit if limit > 0 else 1
+    }
 
 
 async def delete_scan(db: AsyncSession, scan_id: int, user_id: int) -> None:
