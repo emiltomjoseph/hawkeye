@@ -3,7 +3,7 @@ import StatCard from "@/components/dashboard/StatCard";
 import QuickActionCard from "@/components/dashboard/QuickActionCard";
 import RecentScansTable from "@/components/dashboard/RecentScansTable";
 import { dashboardStats, quickActions } from "@/lib/mock-dashboard";
-import { mockScanHistory } from "@/lib/mock-data";
+import { getAllScans } from "@/lib/scan-store";
 
 export const metadata: Metadata = {
   title: "Dashboard — Hawkeye",
@@ -11,6 +11,8 @@ export const metadata: Metadata = {
 };
 
 export default function DashboardPage() {
+  const allScans = typeof window !== "undefined" ? getAllScans() : [];
+  
   return (
     <div className="relative max-w-6xl mx-auto space-y-8">
       {/* Ambient header glow */}
@@ -51,7 +53,7 @@ export default function DashboardPage() {
         <p className="font-mono text-xs text-feather/60 tracking-widest mb-3">
           SCAN::RECENT
         </p>
-        <RecentScansTable scans={mockScanHistory} />
+        <RecentScansTable />
       </section>
     </div>
   );

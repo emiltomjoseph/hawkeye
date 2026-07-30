@@ -7,7 +7,8 @@ import { ArrowLeft, Download, Share2, Check } from "lucide-react";
 import ScoreRing from "@/components/ScoreRing";
 import ResultCard from "@/components/ResultCard";
 import { Button, Badge } from "@/components/ui";
-import { mockScanHistory, formatTimestamp } from "@/lib/mock-data";
+import { formatTimestamp } from "@/lib/mock-data";
+import { getScanById } from "@/lib/scan-store";
 import { exportScanReportPDF } from "@/lib/pdf-exporter";
 
 export default function ScanResultPage() {
@@ -16,9 +17,24 @@ export default function ScanResultPage() {
   const [downloading, setDownloading] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const scan = mockScanHistory.find((s) => s.id === id) || mockScanHistory[0];
+  // We fetch dynamically so that newly run scans show their real data instead of mock fallback
+  const scan = getScanById(id);
+
+  if (!scan) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20">
+        <h1 className="font-display text-2xl text-bone mb-2">Scan Not Found</h1>
+        <p className="font-body text-feather mb-6">Could not locate the results for this security scan.</p>
+        <Link href="/scan-history">
+          <Button variant="primary">Return to History</Button>
+        </Link>
+      </div>
+    );
+  }
 
   async function handleDownloadPDF() {
+    if (!scan) return;
+    
     setDownloading(true);
     try {
       await exportScanReportPDF(scan);

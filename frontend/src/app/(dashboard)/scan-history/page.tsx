@@ -7,7 +7,8 @@ import { Download, Share2, Eye, Check, ExternalLink } from "lucide-react";
 import ScoreRing from "@/components/ScoreRing";
 import StatusBadge from "@/components/StatusBadge";
 import { Button, Card, Badge, EmptyState } from "@/components/ui";
-import { mockScanHistory, formatTimestamp, getScoreColor, type ScanResult } from "@/lib/mock-data";
+import { formatTimestamp, getScoreColor, type ScanResult } from "@/lib/mock-data";
+import { getAllScans } from "@/lib/scan-store";
 import { exportScanReportPDF } from "@/lib/pdf-exporter";
 
 type FilterStatus = "all" | "pass" | "warning" | "critical";
@@ -25,10 +26,15 @@ export default function ScanHistoryPage() {
   const [sortBy, setSortBy] = useState<SortKey>("date");
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [allScans, setAllScans] = useState<ScanResult[]>([]);
+
+  React.useEffect(() => {
+    setAllScans(getAllScans());
+  }, []);
 
   /* ── Filtered & Sorted Scans ── */
   const scans = useMemo(() => {
-    let list = [...mockScanHistory];
+    let list = [...allScans];
 
     if (filterStatus !== "all") {
       list = list.filter((s) => getOverallStatus(s.score) === filterStatus);
@@ -42,9 +48,9 @@ export default function ScanHistoryPage() {
     });
 
     return list;
-  }, [filterStatus, sortBy]);
+  }, [filterStatus, sortBy, allScans]);
 
-  const mostRecentScan = mockScanHistory[0];
+  const mostRecentScan = allScans[0];
 
   /* ── Handlers ── */
   async function handleDownload(scan: ScanResult, e?: React.MouseEvent) {
