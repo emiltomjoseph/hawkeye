@@ -1,14 +1,14 @@
 """
 Authentication API routes.
-Handles user registration and login.
+Handles user registration, login, and token refresh.
 """
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Body
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database import get_db
-from schemas.user import UserRegister, UserLogin, UserProfile, Token, MessageResponse
-from services.auth_service import register_user, authenticate_user
+from schemas.user import UserRegister, UserLogin, UserProfile, Token
+from services.auth_service import register_user, authenticate_user, refresh_user_token
 
 router = APIRouter(prefix="/api/auth", tags=["Authentication"])
 
@@ -20,7 +20,7 @@ async def register(user_data: UserRegister, db: AsyncSession = Depends(get_db)):
 
     - **name**: User's display name (2-100 characters)
     - **email**: Valid email address (must be unique)
-    - **password**: Password (6-128 characters)
+    - **password**: Password (min length and complexity determined by policy)
     """
     user = await register_user(db, user_data)
     return user
@@ -29,10 +29,22 @@ async def register(user_data: UserRegister, db: AsyncSession = Depends(get_db)):
 @router.post("/login", response_model=Token)
 async def login(login_data: UserLogin, db: AsyncSession = Depends(get_db)):
     """
-    Login with email and password to receive a JWT access token.
+    Login with email and password to receive JWT access and refresh tokens.
 
-    Use the returned token in the Authorization header:
+    Use the returned access token in the Authorization header:
     `Authorization: Bearer <token>`
     """
     token = await authenticate_user(db, login_data)
+    return token
+
+
+@router.post("/refresh", response_model=Token)
+async def refresh_token(
+    refresh_token: str = Body(..., embed=True),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Get a new access token using a valid refresh token.
+    """
+    token = await refresh_user_token(db, refresh_token)
     return token
