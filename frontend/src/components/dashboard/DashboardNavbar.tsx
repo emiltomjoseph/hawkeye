@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { Menu, Plus, ChevronDown, User, Settings, LogOut } from "lucide-react";
 import { mockUser } from "@/lib/mock-dashboard";
+import { getUser, clearUser, getInitials, UserData } from "@/lib/user-store";
 
 interface DashboardNavbarProps {
   onMenuToggle: () => void;
@@ -12,6 +13,25 @@ interface DashboardNavbarProps {
 export default function DashboardNavbar({ onMenuToggle }: DashboardNavbarProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const [userData, setUserData] = useState<UserData>({
+    name: mockUser.name,
+    email: mockUser.email,
+  });
+
+  useEffect(() => {
+    function loadUser() {
+      const user = getUser();
+      if (user) {
+        setUserData(user);
+      }
+    }
+    loadUser();
+    window.addEventListener("user-updated", loadUser);
+    return () => window.removeEventListener("user-updated", loadUser);
+  }, []);
+
+  const userInitials = getInitials(userData.name);
 
   /* Close dropdown on outside click */
   useEffect(() => {
@@ -61,7 +81,7 @@ export default function DashboardNavbar({ onMenuToggle }: DashboardNavbarProps) 
           >
             <div className="w-7 h-7 rounded-full bg-neon/10 border border-neon/20 flex items-center justify-center">
               <span className="font-mono text-[10px] text-neon">
-                {mockUser.initials}
+                {userInitials}
               </span>
             </div>
             <ChevronDown
@@ -74,8 +94,8 @@ export default function DashboardNavbar({ onMenuToggle }: DashboardNavbarProps) 
           {dropdownOpen && (
             <div className="absolute right-0 top-full mt-1.5 w-48 rounded-lg border border-border bg-raised py-1 shadow-xl shadow-deep/50">
               <div className="px-3 py-2 border-b border-border">
-                <p className="font-body text-sm text-bone">{mockUser.name}</p>
-                <p className="font-mono text-xs text-feather/60">{mockUser.email}</p>
+                <p className="font-body text-sm text-bone">{userData.name}</p>
+                <p className="font-mono text-xs text-feather/60">{userData.email}</p>
               </div>
               <Link
                 href="/settings"
@@ -93,13 +113,17 @@ export default function DashboardNavbar({ onMenuToggle }: DashboardNavbarProps) 
                 <Settings className="w-4 h-4" strokeWidth={1.5} />
                 Settings
               </Link>
-              <button
+              <Link
+                href="/login"
                 className="flex items-center gap-2 w-full px-3 py-2 text-sm text-feather hover:text-critical hover:bg-critical/5 transition-colors cursor-pointer"
-                onClick={() => setDropdownOpen(false)}
+                onClick={() => {
+                  setDropdownOpen(false);
+                  clearUser();
+                }}
               >
                 <LogOut className="w-4 h-4" strokeWidth={1.5} />
                 Sign Out
-              </button>
+              </Link>
             </div>
           )}
         </div>

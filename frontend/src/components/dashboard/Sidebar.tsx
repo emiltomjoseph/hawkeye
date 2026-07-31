@@ -13,6 +13,7 @@ import {
   X,
 } from "lucide-react";
 import { sidebarNavItems, mockUser } from "@/lib/mock-dashboard";
+import { getUser, clearUser, getInitials, UserData } from "@/lib/user-store";
 
 const iconMap: Record<string, React.ElementType> = {
   Home,
@@ -32,6 +33,25 @@ export default function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const drawerRef = useRef<HTMLDivElement>(null);
   const firstFocusableRef = useRef<HTMLButtonElement>(null);
+
+  const [userData, setUserData] = useState<UserData>({
+    name: mockUser.name,
+    email: mockUser.email,
+  });
+
+  useEffect(() => {
+    function loadUser() {
+      const user = getUser();
+      if (user) {
+        setUserData(user);
+      }
+    }
+    loadUser();
+    window.addEventListener("user-updated", loadUser);
+    return () => window.removeEventListener("user-updated", loadUser);
+  }, []);
+
+  const userInitials = getInitials(userData.name);
 
   /* ── Escape key dismisses mobile drawer ── */
   const handleKeyDown = useCallback(
@@ -143,30 +163,34 @@ export default function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
             {/* Avatar initials */}
             <div className="w-8 h-8 rounded-full bg-neon/10 border border-neon/20 flex items-center justify-center shrink-0">
               <span className="font-mono text-xs text-neon">
-                {mockUser.initials}
+                {userInitials}
               </span>
             </div>
             {showLabels && (
               <div className="min-w-0 flex-1">
                 <p className="font-body text-sm text-bone truncate">
-                  {mockUser.name}
+                  {userData.name}
                 </p>
                 <p className="font-mono text-xs text-feather/60 truncate">
-                  {mockUser.email}
+                  {userData.email}
                 </p>
               </div>
             )}
           </div>
-          <button
+          <Link
+            href="/login"
+            onClick={() => {
+              if (isMobile) onMobileClose();
+              clearUser();
+            }}
             className={`
-              flex items-center gap-2 mt-3 text-feather hover:text-critical transition-colors text-sm font-body cursor-pointer
+              flex items-center gap-2 mt-3 text-feather hover:text-critical transition-colors text-sm font-body cursor-pointer w-full
               ${!showLabels ? "justify-center" : ""}
             `}
-            onClick={isMobile ? onMobileClose : undefined}
           >
             <LogOut className="w-4 h-4" strokeWidth={1.5} />
             {showLabels && <span>Sign Out</span>}
-          </button>
+          </Link>
         </div>
       </>
     );

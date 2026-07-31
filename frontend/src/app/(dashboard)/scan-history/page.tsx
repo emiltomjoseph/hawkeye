@@ -2,11 +2,13 @@
 
 import React, { useState, useMemo } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Download, Share2, Eye, Check, ExternalLink } from "lucide-react";
 import ScoreRing from "@/components/ScoreRing";
 import StatusBadge from "@/components/StatusBadge";
 import { Button, Card, Badge, EmptyState } from "@/components/ui";
-import { mockScanHistory, formatTimestamp, getScoreColor, type ScanResult } from "@/lib/mock-data";
+import { formatTimestamp, getScoreColor, type ScanResult } from "@/lib/mock-data";
+import { getAllScans } from "@/lib/scan-store";
 import { exportScanReportPDF } from "@/lib/pdf-exporter";
 
 type FilterStatus = "all" | "pass" | "warning" | "critical";
@@ -19,14 +21,20 @@ function getOverallStatus(score: number): "pass" | "warning" | "critical" {
 }
 
 export default function ScanHistoryPage() {
+  const router = useRouter();
   const [filterStatus, setFilterStatus] = useState<FilterStatus>("all");
   const [sortBy, setSortBy] = useState<SortKey>("date");
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [allScans, setAllScans] = useState<ScanResult[]>([]);
+
+  React.useEffect(() => {
+    setAllScans(getAllScans());
+  }, []);
 
   /* ── Filtered & Sorted Scans ── */
   const scans = useMemo(() => {
-    let list = [...mockScanHistory];
+    let list = [...allScans];
 
     if (filterStatus !== "all") {
       list = list.filter((s) => getOverallStatus(s.score) === filterStatus);
@@ -40,9 +48,9 @@ export default function ScanHistoryPage() {
     });
 
     return list;
-  }, [filterStatus, sortBy]);
+  }, [filterStatus, sortBy, allScans]);
 
-  const mostRecentScan = mockScanHistory[0];
+  const mostRecentScan = allScans[0];
 
   /* ── Handlers ── */
   async function handleDownload(scan: ScanResult, e?: React.MouseEvent) {
@@ -111,11 +119,14 @@ export default function ScanHistoryPage() {
 
               {/* Summary CTAs */}
               <div className="flex flex-wrap items-center gap-3 w-full md:w-auto justify-end">
-                <Link href={`/scan/${mostRecentScan.id}`}>
-                  <Button variant="primary" size="md" rightIcon={ExternalLink}>
-                    View Report
-                  </Button>
-                </Link>
+                <Button
+                  variant="primary"
+                  size="md"
+                  rightIcon={ExternalLink}
+                  onClick={() => router.push(`/scan/${mostRecentScan.id}`)}
+                >
+                  View Report
+                </Button>
                 <Button
                   variant="secondary"
                   size="md"
@@ -228,11 +239,15 @@ export default function ScanHistoryPage() {
                     </td>
                     <td className="px-5 py-4 text-right">
                       <div className="inline-flex items-center justify-end gap-2">
-                        <Link href={`/scan/${scan.id}`}>
-                          <Button size="sm" variant="ghost" leftIcon={Eye} aria-label={`View report for ${scan.url}`}>
-                            View
-                          </Button>
-                        </Link>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          leftIcon={Eye}
+                          aria-label={`View report for ${scan.url}`}
+                          onClick={() => router.push(`/scan/${scan.id}`)}
+                        >
+                          View
+                        </Button>
                         <Button
                           size="sm"
                           variant="secondary"
@@ -285,11 +300,15 @@ export default function ScanHistoryPage() {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-border/50">
-                  <Link href={`/scan/${scan.id}`} className="flex-1">
-                    <Button size="sm" variant="primary" className="w-full" leftIcon={Eye}>
-                      View
-                    </Button>
-                  </Link>
+                  <Button
+                    size="sm"
+                    variant="primary"
+                    className="flex-1"
+                    leftIcon={Eye}
+                    onClick={() => router.push(`/scan/${scan.id}`)}
+                  >
+                    View
+                  </Button>
                   <Button
                     size="sm"
                     variant="secondary"

@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { User, Bell, Lock, AlertTriangle, Check, Trash2 } from "lucide-react";
 import { Button, Input, Card, Alert, Modal, Switch } from "@/components/ui";
+import { getUser, saveUser, clearUser, getInitials } from "@/lib/user-store";
 
 type SettingsTab = "profile" | "notifications" | "security" | "danger";
 
@@ -15,6 +16,14 @@ export default function SettingsPage() {
   const [name, setName] = useState("Alex Mercer");
   const [email, setEmail] = useState("alex@hawkeye.dev");
   const [profileSuccess, setProfileSuccess] = useState(false);
+
+  useEffect(() => {
+    const u = getUser();
+    if (u) {
+      setName(u.name);
+      setEmail(u.email);
+    }
+  }, []);
 
   /* ── 2. Notifications State ── */
   const [notifComplete, setNotifComplete] = useState(true);
@@ -36,6 +45,11 @@ export default function SettingsPage() {
   /* ── Handlers ── */
   function handleSaveProfile(e: React.FormEvent) {
     e.preventDefault();
+    saveUser({ name: name.trim(), email: email.trim() });
+    
+    // Dispatch a custom event so other components (Sidebar, Navbar) update without a reload
+    window.dispatchEvent(new Event("user-updated"));
+
     setProfileSuccess(true);
     setTimeout(() => setProfileSuccess(false), 3000);
   }
@@ -198,7 +212,7 @@ export default function SettingsPage() {
               {/* Avatar Preview */}
               <div className="flex items-center gap-4">
                 <div className="w-16 h-16 rounded-full bg-dusk border border-talon/40 flex items-center justify-center text-talon font-display text-xl font-bold shrink-0">
-                  AM
+                  {getInitials(name)}
                 </div>
                 <div>
                   <p className="font-mono text-sm text-bone font-medium">Avatar</p>

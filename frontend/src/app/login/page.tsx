@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button, Input, Alert } from "@/components/ui";
+import { saveUser } from "@/lib/user-store";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -22,6 +23,15 @@ export default function LoginPage() {
     }
 
     setIsLoading(true);
+
+    // Derive a display name from the email (before the @)
+    const namePart = email.split("@")[0].replace(/[._-]/g, " ");
+    const displayName = namePart
+      .split(" ")
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(" ");
+
+    saveUser({ name: displayName, email: email.trim() });
 
     // Mock authentication redirect
     setTimeout(() => {

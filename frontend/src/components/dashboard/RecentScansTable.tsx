@@ -1,10 +1,12 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import StatusBadge from "@/components/StatusBadge";
 import EmptyState from "./EmptyState";
 import type { ScanResult } from "@/lib/mock-data";
 import { formatTimestamp, getScoreColor } from "@/lib/mock-data";
+import { getAllScans } from "@/lib/scan-store";
 
 function getOverallStatus(score: number): "pass" | "warning" | "critical" {
   if (score >= 70) return "pass";
@@ -12,11 +14,13 @@ function getOverallStatus(score: number): "pass" | "warning" | "critical" {
   return "critical";
 }
 
-interface RecentScansTableProps {
-  scans: ScanResult[];
-}
+export default function RecentScansTable() {
+  const [scans, setScans] = useState<ScanResult[]>([]);
 
-export default function RecentScansTable({ scans }: RecentScansTableProps) {
+  useEffect(() => {
+    setScans(getAllScans().slice(0, 5));
+  }, []);
+
   if (scans.length === 0) {
     return <EmptyState />;
   }

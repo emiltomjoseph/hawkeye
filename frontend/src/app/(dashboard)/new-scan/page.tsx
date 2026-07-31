@@ -6,41 +6,46 @@ import { Globe, ArrowRight, RefreshCw, ArrowLeft, RotateCcw } from "lucide-react
 import { Button, Input, Card, Badge, Spinner, Alert } from "@/components/ui";
 import ScoreRing from "@/components/ScoreRing";
 import { mockScanResult, type ScanResult } from "@/lib/mock-data";
+import { saveScan, generateScanId } from "@/lib/scan-store";
 
 type ScanState = "idle" | "scanning" | "success" | "error";
 
 /**
- * Mock security scan service.
- * Swap this single function for a real API call when the backend is ready.
+ * Real security scan service via Next.js API route.
  * Signature: submitScan(url: string): Promise<ScanResult>
  */
 async function submitScan(url: string): Promise<ScanResult> {
-  // Realistic delay: 2.5 seconds
-  await new Promise((resolve) => setTimeout(resolve, 2500));
+  const res = await fetch("/api/scan", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ url }),
+  });
 
-  // Reliably testable failure path: use https://fail-test.com
-  // Also randomly fails ~10% of the time to demonstrate the error flow
-  const isReliableFailure = url.includes("fail-test.com");
-  const isRandomFailure = !isReliableFailure && Math.random() < 0.1;
-
-  if (isReliableFailure || isRandomFailure) {
-    throw new Error(
-      isReliableFailure
-        ? "Target host unreachable or DNS resolution failed."
-        : "Connection timed out. The target did not respond within 30 seconds."
-    );
+  if (!res.ok) {
+    let errText = "Failed to connect to the target URL.";
+    try {
+      const data = await res.json();
+      if (data.error) errText = data.error;
+    } catch {
+      // ignore JSON parse error
+    }
+    throw new Error(errText);
   }
 
-  // Normalize to full URL for display in result
-  const normalizedUrl = /^https?:\/\//i.test(url) ? url : `https://${url}`;
-  return {
-    ...mockScanResult,
-    url: normalizedUrl,
-    scannedAt: new Date().toISOString(),
-  };
+  const result: ScanResult = await res.json();
+  
+  // Save to local storage so it persists in history
+  saveScan(result);
+  
+  return result;
 }
 
+import { useRouter } from "next/navigation";
+
 export default function NewScanPage() {
+  const router = useRouter();
   const [scanState, setScanState] = useState<ScanState>("idle");
   const [urlInput, setUrlInput] = useState("");
   const [urlError, setUrlError] = useState<string | undefined>();
@@ -316,11 +321,14 @@ export default function NewScanPage() {
                 >
                   Run Another Scan
                 </Button>
-                <Link href={`/scan/${scanResult.id}`}>
-                  <Button variant="primary" size="md" rightIcon={ArrowRight}>
-                    View Full Report
-                  </Button>
-                </Link>
+                <Button
+                  variant="primary"
+                  size="md"
+                  rightIcon={ArrowRight}
+                  onClick={() => router.push(`/scan/${scanResult.id}`)}
+                >
+                  View Full Report
+                </Button>
               </div>
             </div>
 
